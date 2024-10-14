@@ -1,6 +1,10 @@
 use core::mem;
 use std::cmp::min;
 
+use embedded_graphics::prelude::DrawTarget;
+
+mod embedded_render;
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BoundingBox {
     x1: usize,
@@ -28,6 +32,30 @@ impl Command {
             }, 
             flavor: CommandType::Null
         }
+    }
+
+    // BUG: This will only work for shapes that fill their bounds,
+    // so this is totally wrong and need specialization to
+    // actually work.
+    fn covers(&self, clip: &BoundingBox) -> Result<bool, RendererError> {
+        let covers = (self.bounds.x1 <= clip.x1) 
+        && (self.bounds.x2 >= clip.x2)
+        && (self.bounds.y1 <= clip.y1)
+        && (self.bounds.y2 >= clip.y2);
+
+        Ok(covers)
+     }
+
+    // BUG: This should be specialized to look if there are really
+    // any pixels to draw in the clip.So this only helps if narrow
+    // cases right now.
+    fn intersects(&self, clip: &BoundingBox) -> Result<bool, RendererError> {
+        let intersects = (self.bounds.x1 <= clip.x2) 
+        && (self.bounds.x2 >= clip.x1)
+        && (self.bounds.y1 <= clip.y2)
+        && (self.bounds.y2 >= clip.y1);
+
+        Ok(intersects)
     }
 }
 
@@ -134,6 +162,13 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
                 let mut bottom = 0;
                 let mut has_change = false;
 
+                let bounds = BoundingBox {
+                    x1,
+                    y1,
+                    x2,
+                    y2,
+                };
+
                 for i in 0..LENGTH {
                     let current = &mut self.current[i];
                     let new = &mut self.new[i];
@@ -144,43 +179,26 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
                     // instead of the bottom. (Its possible
                     // some set of tiles above 0 will cover
                     // but we don't take advantage of that.)
-                    if (current.bounds.x1 <= x1) 
-                    && (current.bounds.x2 >= x2)
-                    && (current.bounds.y1 <= y2)
-                    && (current.bounds.y2 >= y2) {
+                    if new.covers(&bounds)? {
                         bottom = i;
+                        if current.epoch == new.epoch {
+                            has_change = false;
+                        }
                     }
 
-                    if (new.bounds.x1 <= x1) 
-                    && (new.bounds.x2 >= x2)
-                    && (new.bounds.y1 <= y2)
-                    && (new.bounds.y2 >= y2) {
-                        bottom = i;
-                    }
 
                     // Is there change in this tile.
                     if current.epoch != new.epoch {
 
-                        if (current.bounds.x1 <= x2) 
-                        && (current.bounds.x2 <= x1)
-                        && (current.bounds.y1 <= y2)
-                        && (current.bounds.y2 <= y2) {
-                            has_change = true;
-                        } else  if (new.bounds.x1 <= x2) 
-                        && (new.bounds.x2 <= x1)
-                        && (new.bounds.y1 <= y2)
-                        && (new.bounds.y2 <= y2) {
-                            has_change = true;
+                        if current.intersects(&bounds)? {
+                            has_change = true
+                        } else if new.intersects(&bounds)? {
+                            has_change = true
                         } 
-                    } 
+                    }
                 }
 
-                let bounds = BoundingBox {
-                    x1,
-                    y1,
-                    x2,
-                    y2,
-                };
+                
 
                 if has_change {
                     for i in bottom..LENGTH {
@@ -219,7 +237,7 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
 }
 
 pub enum RendererError {
-
+    BackingError
 }
 
 pub trait Renderer {
