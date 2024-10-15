@@ -5,7 +5,7 @@ use embedded_graphics::prelude::DrawTarget;
 
 mod embedded_render;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BoundingBox {
     x1: usize,
     y1: usize,
@@ -19,7 +19,7 @@ impl BoundingBox {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Command {
     epoch: u8,
     bounds: BoundingBox,
@@ -73,7 +73,7 @@ impl Command {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum CommandType {
     Null,
     Rect(Rgb),
@@ -81,7 +81,7 @@ pub enum CommandType {
 
 
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Rgb {
     r: u8,
     g: u8,
@@ -100,6 +100,7 @@ pub struct DisplayList<const LENGTH: usize> {
     new: [Command; LENGTH],
 }
 
+#[derive(Debug, PartialEq)]
 pub enum DisplayListError {
     IndexOutOfRange,
     UpdateFlavorMismatch(CommandType, CommandType),
@@ -218,6 +219,7 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
                 }
 
                 if has_change {
+
                     renderer.clear(&bounds)?;
 
                     for i in bottom..LENGTH {
@@ -260,6 +262,7 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
 
 }
 
+#[derive(Debug, PartialEq)]
 pub enum RendererError {
     BackingError
 }
