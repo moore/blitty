@@ -13,40 +13,9 @@ use embedded_graphics::{
 
 use embedded_graphics_simulator::{BinaryColorTheme, SimulatorDisplay, Window, OutputSettingsBuilder};
 
-fn test1() -> Result<(), core::convert::Infallible> {
-    let mut display = SimulatorDisplay::<BinaryColor>::new(Size::new(128, 64));
-
-    let line_style = PrimitiveStyle::with_stroke(BinaryColor::On, 1);
-    let text_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
-
-    Circle::new(Point::new(72, 8), 48)
-        .into_styled(line_style)
-        .draw(&mut display)?;
-
-    Line::new(Point::new(48, 16), Point::new(8, 16))
-        .into_styled(line_style)
-        .draw(&mut display)?;
-
-    Line::new(Point::new(48, 16), Point::new(64, 32))
-        .into_styled(line_style)
-        .draw(&mut display)?;
-
-    Rectangle::new(Point::new(79, 15), Size::new(34, 34))
-        .into_styled(line_style)
-        .draw(&mut display)?;
-
-    Text::new("Hello World!", Point::new(5, 5), text_style).draw(&mut display)?;
-
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    Window::new("Hello World", &output_settings).show_static(&display);
-
-    Ok(())
-}
 
 fn test2() -> Result<(), DisplayListError> {
-    let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(320, 240));
+    let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(640, 480));
 
     let mut renderer = embedded_render::EmbeddedRender::new(display, 64);
 

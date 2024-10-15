@@ -60,20 +60,6 @@ impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
                 let x2 = min(command.bounds.x2, clip.x2);
                 let y2 = min(command.bounds.y2, clip.y2);
 
-                dbg!(command.bounds.x1);
-                dbg!(clip.x1);
-                dbg!(command.bounds.y1);
-                dbg!(clip.y1);
-                dbg!(command.bounds.x2);
-                dbg!(clip.x2);
-                dbg!(command.bounds.y2);
-                dbg!(clip.y2);
-
-                dbg!(x1);
-                dbg!(y1);
-                dbg!(x2);
-                dbg!(y2);
-
                 let width = (x2 - x1) as u32; // BUG is this safe
                 let height = (y2 - y1) as u32; // Bug is this safe
                 let x = x1 as i32; // Bug is this safe
@@ -101,7 +87,6 @@ impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
         let mut clipped = self.display.clipped(&area);
         clipped.clear(Rgb888::BLACK)
         .map_err(|e| RendererError::BackingError)?;
-
 
         Ok(())
     }
