@@ -13,6 +13,12 @@ pub struct BoundingBox {
     y2: usize,
 } 
 
+impl BoundingBox {
+    pub fn new( x1: usize, y1: usize, x2: usize, y2: usize) -> Self {
+        Self { x1, y1, x2, y2 }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Command {
     epoch: u8,
@@ -31,6 +37,14 @@ impl Command {
                 y2: 0
             }, 
             flavor: CommandType::Null
+        }
+    }
+
+    pub fn new_rect( bounds: BoundingBox, rgb: Rgb ) -> Self {
+        Command {
+            epoch: 0,
+            bounds,
+            flavor: CommandType::Rect(rgb),
         }
     }
 
@@ -72,7 +86,12 @@ pub struct Rgb {
     r: u8,
     g: u8,
     b: u8,
-    opacity: u8,
+}
+
+impl Rgb {
+    pub fn new( r: u8, b: u8, g: u8 ) -> Self {
+        Self {r, g, b}
+    }
 }
 
 pub struct DisplayList<const LENGTH: usize> {
@@ -198,12 +217,17 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
                     }
                 }
 
-                
-
                 if has_change {
+                    renderer.clear(&bounds)?;
+
                     for i in bottom..LENGTH {
                         let command = &self.new[i];
-                        renderer.draw(command, &bounds)?;
+                        let old = &self.current[i];
+                        if command.intersects(&bounds)? {
+                            renderer.draw(command, &bounds)?;
+                        } else if old.intersects(&bounds)? {
+                            renderer.draw(old, &bounds)?;
+                        }
                     }
                     renderer.flush()?;
                 }
@@ -244,6 +268,7 @@ pub trait Renderer {
     fn width(&self) -> usize;
     fn height(&self) -> usize;
     fn chunk_size(&self) -> usize;
+    fn clear(&mut self, clip: &BoundingBox) -> Result<(), RendererError>;
     fn draw(&mut self, command: &Command, clip: &BoundingBox) -> Result<(), RendererError>;
     fn flush(&mut self) -> Result<(), RendererError>;
 }

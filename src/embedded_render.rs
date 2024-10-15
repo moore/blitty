@@ -1,10 +1,12 @@
 
 use embedded_graphics::{
-    pixelcolor::{PixelColor, RgbColor},
+    pixelcolor::{PixelColor, Rgb888},
     prelude::*,
     primitives::{Rectangle, PrimitiveStyleBuilder},
 
 };
+
+use std::cmp::{min, max};
 
 use super::*;
 
@@ -26,9 +28,13 @@ impl<D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<D, C> {
             display,
         }
     }
+
+    pub fn get_display(&self) -> &D {
+        &self.display
+    }
 }
 
-impl<D: DrawTarget<Color = C>, C: RgbColor> Renderer for EmbeddedRender<D, C> {
+impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
     fn width(&self) -> usize {
         self.width
     }
@@ -46,24 +52,60 @@ impl<D: DrawTarget<Color = C>, C: RgbColor> Renderer for EmbeddedRender<D, C> {
 
         match command.flavor {
             Null => Ok(()),
-            Rect(color) => {
+            Rect(rgb) => {
+
+
+                let x1 = max(command.bounds.x1, clip.x1);
+                let y1 = max(command.bounds.y1, clip.y1);
+                let x2 = min(command.bounds.x2, clip.x2);
+                let y2 = min(command.bounds.y2, clip.y2);
+
+                dbg!(command.bounds.x1);
+                dbg!(clip.x1);
+                dbg!(command.bounds.y1);
+                dbg!(clip.y1);
+                dbg!(command.bounds.x2);
+                dbg!(clip.x2);
+                dbg!(command.bounds.y2);
+                dbg!(clip.y2);
+
+                dbg!(x1);
+                dbg!(y1);
+                dbg!(x2);
+                dbg!(y2);
+
+                let width = (x2 - x1) as u32; // BUG is this safe
+                let height = (y2 - y1) as u32; // Bug is this safe
+                let x = x1 as i32; // Bug is this safe
+                let y = y1 as i32; // Bug is this safe
+
+                let color = Rgb888::new(rgb.r, rgb.b, rgb.g);
+
                 let line_style = PrimitiveStyleBuilder::new()
-                    .stroke_color(C::RED)
-                    .stroke_width(3)
-                    .fill_color(C::GREEN)
+                    .fill_color(color)
                     .build();
 
-                Rectangle::new(Point::new(79, 15), Size::new(34, 34))
+                Rectangle::new(Point::new(x, y), Size::new(width, height))
                 .into_styled(line_style)
                 .draw(&mut self.display)
                 .map_err(|e| RendererError::BackingError)?;
-
-
-
                 Ok(())
             }
         }
     }
+
+    fn clear(&mut self, clip: &BoundingBox) -> Result<(), RendererError> {
+        let top_left = Point::new(clip.x1 as i32, clip.y1 as i32);
+        let size = Size::new((clip.x2 - clip.x1) as u32, (clip.y2 - clip.y1) as u32);
+        let area = Rectangle::new(top_left, size);
+        let mut clipped = self.display.clipped(&area);
+        clipped.clear(Rgb888::BLACK)
+        .map_err(|e| RendererError::BackingError)?;
+
+
+        Ok(())
+    }
+
     fn flush(&mut self) -> Result<(), RendererError> {
         // This is a noop in this implementation
         Ok(())
