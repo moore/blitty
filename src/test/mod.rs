@@ -15,9 +15,9 @@ use embedded_graphics_simulator::{BinaryColorTheme, SimulatorDisplay, Window, Ou
 
 
 fn test2() -> Result<(), DisplayListError> {
-    let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(640, 480));
+    let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(320, 240));
 
-    let mut renderer = embedded_render::EmbeddedRender::new(display, 64);
+    let mut renderer = embedded_render::EmbeddedRender::new(display, 16);
 
     let mut commands = DisplayList::<3>::new();
 
