@@ -2,6 +2,11 @@
 name = "blitty"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Display list based rendering engine with support for automatic damage based painting."
+homepage = "https://github.com/moore/blitty"
+repository = "https://github.com/moore/blitty"
+readme = "README.md"
 
 [dependencies]
 embedded-graphics = "0.8.1"
