@@ -3,7 +3,7 @@ use std::cmp::min;
 
 use embedded_graphics::prelude::DrawTarget;
 
-mod embedded_render;
+pub mod embedded_render;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BoundingBox {
