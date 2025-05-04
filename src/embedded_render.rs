@@ -1,15 +1,31 @@
 
 use embedded_graphics::{
-    pixelcolor::{PixelColor, Rgb888},
+    pixelcolor::{PixelColor, Rgb888, BinaryColor},
     prelude::*,
     primitives::{Rectangle, PrimitiveStyleBuilder},
 
 };
 
-use std::cmp::{min, max};
+use core::cmp::{min, max};
 
 use super::*;
 
+impl From<Rgb> for Rgb888 {
+    fn from(value: Rgb) -> Self {
+        Rgb888::new(value.r, value.g, value.b)
+    }
+}
+
+impl From<Rgb> for BinaryColor {
+    fn from(value: Rgb) -> Self {
+
+        if value.r.saturating_add(value.b).saturating_add(value.g) > 0 {
+            BinaryColor::On
+        } else {
+            BinaryColor::Off
+        }
+    }
+}
 
 pub struct EmbeddedRender<D: DrawTarget<Color = C>, C: PixelColor> {
     width: usize,
@@ -32,9 +48,14 @@ impl<D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<D, C> {
     pub fn get_display(&self) -> &D {
         &self.display
     }
+
+    pub fn get_display_mut(&mut self) -> &mut D {
+        &mut self.display
+    }
 }
 
-impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
+impl<D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<D, C> 
+    where C: From<Rgb> {
     fn width(&self) -> usize {
         self.width
     }
@@ -65,16 +86,17 @@ impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
                 let x = x1 as i32; // Bug is this safe
                 let y = y1 as i32; // Bug is this safe
 
-                let color = Rgb888::new(rgb.r, rgb.b, rgb.g);
+                let color = rgb.into();
 
                 let line_style = PrimitiveStyleBuilder::new()
                     .fill_color(color)
                     .build();
 
                 Rectangle::new(Point::new(x, y), Size::new(width, height))
-                .into_styled(line_style)
-                .draw(&mut self.display)
-                .map_err(|e| RendererError::BackingError)?;
+                    .into_styled(line_style)
+                    .draw(&mut self.display)
+                    .map_err(|_e| RendererError::BackingError)?;
+                
                 Ok(())
             }
         }
@@ -85,8 +107,9 @@ impl<D: DrawTarget<Color = Rgb888>> Renderer for EmbeddedRender<D, Rgb888> {
         let size = Size::new((clip.x2 - clip.x1) as u32, (clip.y2 - clip.y1) as u32);
         let area = Rectangle::new(top_left, size);
         let mut clipped = self.display.clipped(&area);
-        clipped.clear(Rgb888::BLACK)
-        .map_err(|e| RendererError::BackingError)?;
+        let clear_color = Rgb::new(0, 0, 0).into();
+        clipped.clear(clear_color)
+        .map_err(|_e| RendererError::BackingError)?;
 
         Ok(())
     }

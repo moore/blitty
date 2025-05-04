@@ -1,7 +1,13 @@
+#![no_std]
+
 use core::mem;
-use std::cmp::min;
+use core::cmp::min;
+use core::result::{Result, Result::{Ok, Err}};
+use core::convert::From;
+use core::iter::Iterator;
 
 use embedded_graphics::prelude::DrawTarget;
+
 
 pub mod embedded_render;
 
