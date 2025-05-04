@@ -13,10 +13,10 @@ pub mod embedded_render;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BoundingBox {
-    x1: usize,
-    y1: usize,
-    x2: usize,
-    y2: usize,
+    pub x1: usize,
+    pub y1: usize,
+    pub x2: usize,
+    pub y2: usize,
 } 
 
 impl BoundingBox {

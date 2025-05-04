@@ -27,15 +27,15 @@ impl From<Rgb> for BinaryColor {
     }
 }
 
-pub struct EmbeddedRender<D: DrawTarget<Color = C>, C: PixelColor> {
+pub struct EmbeddedRender<'a, D: DrawTarget<Color = C>, C: PixelColor> {
     width: usize,
     height: usize,
     chuck_size: usize,
-    display: D,
+    display: &'a mut D,
 }
 
-impl<D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<D, C> {
-    pub fn new(display: D, chuck_size: usize) -> Self {
+impl<'a, D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<'a, D, C> {
+    pub fn new(display: &'a mut D, chuck_size: usize) -> Self {
         let bounds = display.bounding_box();
         EmbeddedRender {
             width: bounds.size.width as usize, //BUG: why is this safe?
@@ -54,7 +54,7 @@ impl<D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<D, C> {
     }
 }
 
-impl<D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<D, C> 
+impl<'a, D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<'a, D, C> 
     where C: From<Rgb> {
     fn width(&self) -> usize {
         self.width
@@ -94,7 +94,7 @@ impl<D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<D, C>
 
                 Rectangle::new(Point::new(x, y), Size::new(width, height))
                     .into_styled(line_style)
-                    .draw(&mut self.display)
+                    .draw(self.display)
                     .map_err(|_e| RendererError::BackingError)?;
                 
                 Ok(())
