@@ -3,11 +3,8 @@ use super::*;
 use smol;
 
 use embedded_graphics::{
-    pixelcolor::{BinaryColor, Rgb888},
+    pixelcolor::Rgb888,
     prelude::*,
-    primitives::{Circle, Line, Rectangle, PrimitiveStyle},
-    mono_font::{ascii::FONT_6X9, MonoTextStyle},
-    text::Text,
 };
 
 use embedded_graphics_simulator::{SimulatorDisplay, Window, OutputSettingsBuilder};
@@ -53,7 +50,7 @@ fn test2() -> Result<(), DisplayListError> {
 
     window.update(renderer.get_display());
 
-    for i in 0..128 {
+    for _ in 0..128 {
         bounds.x1 += 1;
         bounds.x2 += 1;
         rgb.r += 1;

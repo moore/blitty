@@ -1,7 +1,3 @@
-
-
-use embedded_graphics::{draw_target::Clipped, framebuffer::buffer_size};
-use oled_async::{display, mode::displaymode::DisplayModeTrait, prelude::*, properties::DisplayProperties};
 use display_interface::{AsyncWriteOnlyDataCommand, DisplayError, DataFormat};
 
 use core::cmp::{min, max};
@@ -37,8 +33,6 @@ impl<'a, DI, const BUFFER_SIZE: usize> Sh1107Render<'a, DI, BUFFER_SIZE>
 where
     DI: AsyncWriteOnlyDataCommand,
 {
-    const CHUNK_SIZE: usize = usize::isqrt(BUFFER_SIZE) * 8;
-
     pub fn new(display: &'a mut DI, width: u32, height: u32, chunk_width: u32, chunk_height: u32) -> Self {
         Self {
             width,

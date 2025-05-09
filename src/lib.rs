@@ -6,9 +6,6 @@ use core::result::{Result, Result::{Ok, Err}};
 use core::convert::From;
 use core::iter::Iterator;
 
-use display_interface::DisplayError;
-
-
 pub mod embedded_render;
 pub mod sh1107_render;
 
