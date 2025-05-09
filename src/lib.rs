@@ -6,21 +6,27 @@ use core::result::{Result, Result::{Ok, Err}};
 use core::convert::From;
 use core::iter::Iterator;
 
-use embedded_graphics::prelude::DrawTarget;
+use display_interface::DisplayError;
 
 
 pub mod embedded_render;
+pub mod sh1107_render;
+
+#[derive(Debug)]
+pub enum RenderError {
+    BackingError,
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct BoundingBox {
-    pub x1: usize,
-    pub y1: usize,
-    pub x2: usize,
-    pub y2: usize,
+    pub x1: u32,
+    pub y1: u32,
+    pub x2: u32,
+    pub y2: u32,
 } 
 
 impl BoundingBox {
-    pub fn new( x1: usize, y1: usize, x2: usize, y2: usize) -> Self {
+    pub fn new( x1: u32, y1: u32, x2: u32, y2: u32) -> Self {
         Self { x1, y1, x2, y2 }
     }
 }
@@ -174,16 +180,16 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
         Ok(())
     }
 
-    pub fn draw(&mut self, renderer: &mut impl Renderer) -> Result<(), DisplayListError> {
+    pub async fn draw(&mut self, renderer: &mut impl Renderer) -> Result<(), DisplayListError> {
 
         let width = renderer.width();
         let height = renderer.height();
         let step = renderer.chunk_size();
 
-        for x1 in (0..width).step_by(step) {
-            let x2 = min(width, x1+step);
-            for y1 in (0..height).step_by(step) {
-                let y2 = min(height, y1+step);
+        for x1 in (0..width).step_by(step.0 as usize) {
+            let x2 = min(width-1, x1+step.0);
+            for y1 in (0..height).step_by(step.1 as usize) {
+                let y2 = min(height-1, y1+step.1);
 
                 let mut bottom = 0;
                 let mut has_change = false;
@@ -194,6 +200,8 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
                     x2,
                     y2,
                 };
+
+                renderer.set_chunk(x1, y1)?;
 
                 for i in 0..LENGTH {
                     let current = &mut self.current[i];
@@ -226,18 +234,18 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
 
                 if has_change {
 
-                    renderer.clear(&bounds)?;
+                    renderer.clear()?;
 
                     for i in bottom..LENGTH {
                         let command = &self.new[i];
                         let old = &self.current[i];
                         if command.intersects(&bounds)? {
-                            renderer.draw(command, &bounds)?;
+                            renderer.draw(command)?;
                         } else if old.intersects(&bounds)? {
-                            renderer.draw(old, &bounds)?;
+                            renderer.draw(old)?;
                         }
                     }
-                    renderer.flush()?;
+                    renderer.flush().await?;
                 }
             }
         }
@@ -270,16 +278,18 @@ impl<const LENGTH: usize> DisplayList<LENGTH> {
 
 #[derive(Debug, PartialEq)]
 pub enum RendererError {
-    BackingError
+    BackingError,
+    InvalidChunkOffset{ x:u32, y:u32}
 }
 
 pub trait Renderer {
-    fn width(&self) -> usize;
-    fn height(&self) -> usize;
-    fn chunk_size(&self) -> usize;
-    fn clear(&mut self, clip: &BoundingBox) -> Result<(), RendererError>;
-    fn draw(&mut self, command: &Command, clip: &BoundingBox) -> Result<(), RendererError>;
-    fn flush(&mut self) -> Result<(), RendererError>;
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
+    fn chunk_size(&self) -> (u32, u32);
+    fn set_chunk(&mut self, x_index: u32, y_index: u32) -> Result<(), RendererError>;
+    fn clear(&mut self) -> Result<(), RendererError>;
+    fn draw(&mut self, command: &Command) -> Result<(), RendererError>;
+    async fn flush(&mut self) -> Result<(), RendererError>;
 }
 
 #[cfg(test)]

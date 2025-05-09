@@ -28,20 +28,25 @@ impl From<Rgb> for BinaryColor {
 }
 
 pub struct EmbeddedRender<'a, D: DrawTarget<Color = C>, C: PixelColor> {
-    width: usize,
-    height: usize,
-    chuck_size: usize,
+    width: u32,
+    height: u32,
     display: &'a mut D,
+    chunk_width: u32,
+    chunk_height: u32,
+    clip: BoundingBox,
 }
 
 impl<'a, D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<'a, D, C> {
-    pub fn new(display: &'a mut D, chuck_size: usize) -> Self {
+    pub fn new(display: &'a mut D, chunk_width: u32, chunk_height: u32) -> Self {
         let bounds = display.bounding_box();
+        let clip = BoundingBox::new(0, 0, chunk_width, chunk_height);
         EmbeddedRender {
-            width: bounds.size.width as usize, //BUG: why is this safe?
-            height: bounds.size.height as usize, //BUG: why is this safe?
-            chuck_size,
+            width: bounds.size.width , //BUG: why is this safe?
+            height: bounds.size.height, //BUG: why is this safe?,
             display,
+            chunk_width,
+            chunk_height,
+            clip,
         }
     }
 
@@ -56,21 +61,38 @@ impl<'a, D: DrawTarget<Color = C>, C: PixelColor> EmbeddedRender<'a, D, C> {
 
 impl<'a, D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<'a, D, C> 
     where C: From<Rgb> {
-    fn width(&self) -> usize {
+    fn width(&self) -> u32 {
         self.width
     }
 
-    fn height(&self) -> usize {
+    fn height(&self) -> u32 {
         self.height
     }
 
-    fn chunk_size(&self) -> usize {
-        self.chuck_size
+    fn chunk_size(&self) -> (u32, u32) {
+        (self.chunk_width, self.chunk_height)
     }
 
-    fn draw(&mut self, command: &Command, clip: &BoundingBox) -> Result<(), RendererError> {
+    // Set the current chunk by the top left x and y offset in pixels.
+    fn set_chunk(&mut self, x: u32, y: u32) -> Result<(), RendererError> {
+        if (x % self.chunk_width != 0) || (y % self.chunk_height != 0) {
+            return Err(RendererError::InvalidChunkOffset{x, y})
+        }
+
+        self.clip = BoundingBox{
+            x1: x,
+            y1: y,
+            x2: x + self.chunk_width,
+            y2: y + self.chunk_height,
+        };
+
+        Ok(())
+    }
+
+    fn draw(&mut self, command: &Command) -> Result<(), RendererError> {
         use CommandType::*;
 
+        let clip = self.clip;
         match command.flavor {
             Null => Ok(()),
             Rect(rgb) => {
@@ -102,7 +124,8 @@ impl<'a, D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<'a
         }
     }
 
-    fn clear(&mut self, clip: &BoundingBox) -> Result<(), RendererError> {
+    fn clear(&mut self) -> Result<(), RendererError> {
+        let clip = self.clip;
         let top_left = Point::new(clip.x1 as i32, clip.y1 as i32);
         let size = Size::new((clip.x2 - clip.x1) as u32, (clip.y2 - clip.y1) as u32);
         let area = Rectangle::new(top_left, size);
@@ -114,7 +137,7 @@ impl<'a, D: DrawTarget<Color = C>, C: PixelColor> Renderer for EmbeddedRender<'a
         Ok(())
     }
 
-    fn flush(&mut self) -> Result<(), RendererError> {
+    async fn flush(&mut self) -> Result<(), RendererError> {
         // This is a noop in this implementation
         Ok(())
     }

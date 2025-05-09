@@ -1,7 +1,6 @@
-use core::ops::Bound;
-
 use super::*;
 
+use smol;
 
 use embedded_graphics::{
     pixelcolor::{BinaryColor, Rgb888},
@@ -11,13 +10,13 @@ use embedded_graphics::{
     text::Text,
 };
 
-use embedded_graphics_simulator::{BinaryColorTheme, SimulatorDisplay, Window, OutputSettingsBuilder};
+use embedded_graphics_simulator::{SimulatorDisplay, Window, OutputSettingsBuilder};
 
 
 fn test2() -> Result<(), DisplayListError> {
     let mut display = SimulatorDisplay::<Rgb888>::new(Size::new(320, 240));
 
-    let mut renderer = embedded_render::EmbeddedRender::new(&mut display, 16);
+    let mut renderer = embedded_render::EmbeddedRender::new(&mut display, 16, 16);
 
     let mut commands = DisplayList::<3>::new();
 
@@ -44,7 +43,7 @@ fn test2() -> Result<(), DisplayListError> {
     commands.set(1, rect)?;
 
 
-    commands.draw(&mut renderer)?;
+    smol::block_on(commands.draw(&mut renderer))?;
 
 
     let output_settings = OutputSettingsBuilder::new()
@@ -63,7 +62,7 @@ fn test2() -> Result<(), DisplayListError> {
 
         commands.update(1, rect)?;
 
-        commands.draw(&mut renderer)?;
+        smol::block_on(commands.draw(&mut renderer))?;
 
         window.update(renderer.get_display());
     }
